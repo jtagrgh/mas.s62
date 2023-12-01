@@ -1,0 +1,27 @@
+Generate private key:
+[256][256]...[256] n = 256
+
+Generate public key = hash of private key
+
+Give out public key. Nobody can get private from it.
+
+Given msg:
+Sign by selecting private key blocks 
+to reveal based on bits in message hash
+
+Everyone now has signature and public key
+
+Only you know private key, and evyerone only knows
+private key corresponding to specific msg
+
+Nobody can forge unless they want to sign the
+exact same message b.c hash(other msg) != hash(msg)
+
+Anybody can verify by chechking against public key...
+following msg hash
+
+If signature is false, some sig block wont hash
+to corresponding public key
+
+If signature is correct, all sig block will hash to
+corresponding publick key block 

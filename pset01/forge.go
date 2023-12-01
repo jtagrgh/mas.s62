@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 /*
 A note about the provided keys and signatures:
@@ -119,15 +121,48 @@ func Forge() (string, Signature, error) {
 	fmt.Printf("ok 3: %v\n", Verify(msgslice[2], pub, sig3))
 	fmt.Printf("ok 4: %v\n", Verify(msgslice[3], pub, sig4))
 
-	msgString := "my forged message"
-	var sig Signature
+	var msgBase string = "forgeJakob"
+	var baseHash Message = GetMessageFromString(msgBase)
+	var newMsg string = msgBase + Block(baseHash).ToHex()
+	var msgHash Message = GetMessageFromString(newMsg)
+
+	var mySig Signature
+	var iteration int = 0
+
+	for {
+		fmt.Println(iteration, Block(msgHash).ToHex())
+		msgMatch := true
+		for i := 0; i < 256; i++ {
+			myBit := msgHash[i/8] >> (7 - (i % 8)) & 0x1
+			bitMatch := false
+			for j, msg := range msgslice {
+				valBit := msg[i/8] >> (7 - (i % 8)) & 0x1
+				if myBit == valBit {
+					bitMatch = true
+					mySig.Preimage[i] = sigslice[j].Preimage[i]
+					break
+				}
+			}
+			if !bitMatch {
+				msgMatch = false
+				break
+			}
+		}
+		if msgMatch {
+			break
+		}
+
+		newMsg = msgBase + Block(msgHash).ToHex()
+		msgHash = GetMessageFromString(newMsg)
+		iteration++
+	}
 
 	// your code here!
 	// ==
 	// Geordi La
 	// ==
 
-	return msgString, sig, nil
+	return newMsg, mySig, nil
 
 }
 

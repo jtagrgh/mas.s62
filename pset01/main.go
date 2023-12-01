@@ -21,6 +21,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -110,7 +111,7 @@ func HexToPubkey(s string) (PublicKey, error) {
 	// first, make sure hex string is of correct length
 	if len(s) != expectedLength {
 		return p, fmt.Errorf(
-			"Pubkey string %d characters, expect %d", expectedLength)
+			"Pubkey string %d characters, expect %d", len(s), expectedLength)
 	}
 
 	// decode from hex to a byte slice
@@ -188,7 +189,7 @@ func HexToSignature(s string) (Signature, error) {
 	// first, make sure hex string is of correct length
 	if len(s) != expectedLength {
 		return sig, fmt.Errorf(
-			"Pubkey string %d characters, expect %d", expectedLength)
+			"Pubkey string %d characters, expect %d", len(s), expectedLength)
 	}
 
 	// decode from hex to a byte slice
@@ -222,8 +223,14 @@ func GenerateKey() (SecretKey, PublicKey, error) {
 
 	// Your code here
 	// ===
-
+	for i := range sec.ZeroPre {
+		rand.Read(sec.ZeroPre[i][:])
+		pub.ZeroHash[i] = Block(sha256.Sum256(sec.ZeroPre[i][:]))
+		rand.Read(sec.OnePre[i][:])
+		pub.OneHash[i] = Block(sha256.Sum256(sec.OnePre[i][:]))
+	}
 	// ===
+
 	return sec, pub, nil
 }
 
@@ -233,8 +240,20 @@ func Sign(msg Message, sec SecretKey) Signature {
 
 	// Your code here
 	// ===
+	// I know the ordering here is weird but it should work
+	// as long is this and Verify use the same order
+
+	for i := 0; i < 256; i++ {
+		bit := msg[i/8] >> (7 - (i % 8)) & 0x1
+		if bit == 0 {
+			sig.Preimage[i] = sec.ZeroPre[i]
+		} else {
+			sig.Preimage[i] = sec.OnePre[i]
+		}
+	}
 
 	// ===
+
 	return sig
 }
 
@@ -245,6 +264,19 @@ func Verify(msg Message, pub PublicKey, sig Signature) bool {
 	// Your code here
 	// ===
 
+	for i := 0; i < 256; i++ {
+		bit := msg[i/8] >> (7 - (i % 8)) & 0x1
+		hash := sha256.Sum256(sig.Preimage[i][:])
+		if bit == 0 {
+			if hash != pub.ZeroHash[i] {
+				return false
+			}
+		} else {
+			if hash != pub.OneHash[i] {
+				return false
+			}
+		}
+	}
 	// ===
 
 	return true
